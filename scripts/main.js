@@ -71,10 +71,10 @@ document.addEventListener("DOMContentLoaded", () => {
         hideError();
         
         // Validate file type
-        const allowedTypes = ['application/pdf', 'text/csv', 'application/vnd.ms-excel'];
-        const allowedExtensions = ['.pdf', '.csv'];
+        const allowedTypes = ["application/pdf", "text/csv", "application/vnd.ms-excel"];
+        const allowedExtensions = [".pdf", ".csv"];
         
-        const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+        const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf("."));
         
         if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
             showError("Please upload a PDF or CSV file only.");
@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
             
             let analysisResult;
             
-            if (selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf')) {
+            if (selectedFile.type === "application/pdf" || selectedFile.name.toLowerCase().endsWith(".pdf")) {
                 showProgress("Parsing PDF...");
                 const pdfResult = await pdfParser.parseFile(selectedFile);
                 
@@ -130,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     analysisResult = taxAnalyzer.analyzePDFText(pdfResult.text);
                 }
                 
-            } else if (selectedFile.type === 'text/csv' || selectedFile.name.toLowerCase().endsWith('.csv')) {
+            } else if (selectedFile.type === "text/csv" || selectedFile.name.toLowerCase().endsWith(".csv")) {
                 showProgress("Parsing CSV...");
                 const csvResult = await csvParser.parseFile(selectedFile);
                 
@@ -160,12 +160,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             sessionStorage.setItem("taxAnalysisResult", JSON.stringify(resultsData));
 
-            showProgress("Complete! Redirecting to results...");
-
-            // Redirect to results page
-            setTimeout(() => {
-                window.location.href = "results.html";
-            }, 1000);
+            showProgress("Analysis complete. Check console for results.");
+            // Removed: window.location.href = "results.html";
 
         } catch (error) {
             console.error("Analysis error:", error);
