@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tax Lens - See Every Rupee of Tax You Pay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Use Inter as the default font */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom style for the file drop zone */
+        .drop-zone {
+            border: 2px dashed #d1d5db; /* gray-300 */
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+        }
+        .drop-zone-over {
+            background-color: #eef2ff; /* indigo-50 */
+            border-color: #4f46e5; /* indigo-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-emerald-700">Tax Lens</h1>
+            <p class="mt-2 text-lg text-gray-600">Turn your statements into tax clarity.</p>
+        </header>
+
+        <main>
+            <!-- File Upload Section -->
+            <section id="upload-section" class="bg-white p-8 rounded-xl shadow-md border border-gray-200">
+                <div id="drop-zone" class="drop-zone rounded-lg p-10 text-center cursor-pointer">
+                    <input type="file" id="file-input" class="hidden" accept=".pdf,.csv">
+                    <div class="flex flex-col items-center">
+                        <svg class="w-12 h-12 text-gray-400 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 21H5.25A2.25 2.25 0 013 17.25z" />
+                        </svg>
+                        <p class="text-lg font-semibold text-gray-700">Drag & drop your file here</p>
+                        <p class="text-gray-500 mt-1">or</p>
+                        <button id="browse-btn" class="mt-2 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition">
+                            Browse File
+                        </button>
+                        <p class="text-xs text-gray-400 mt-4">Supports PDF & CSV files</p>
+                    </div>
+                </div>
+                <div id="file-info" class="hidden mt-4 text-center">
+                    <p class="font-semibold text-gray-700">Selected file: <span id="file-name"></span></p>
+                    <button id="analyze-btn" class="mt-4 bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-emerald-700 transition text-lg">
+                        Analyze Now
+                    </button>
+                </div>
+                 <div id="error-message" class="hidden mt-4 text-center text-red-600 font-semibold"></div>
+            </section>
+
+            <!-- How It Works Section -->
+            <section id="how-it-works" class="mt-16">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">How It Works in 3 Simple Steps</h2>
+                <div class="grid md:grid-cols-3 gap-8 text-center">
+                    <!-- Step 1 -->
+                    <div class="flex flex-col items-center">
+                        <div class="bg-emerald-100 text-emerald-700 rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">1</div>
+                        <h3 class="text-xl font-semibold mt-4">Upload Securely</h3>
+                        <p class="text-gray-600 mt-2">Your bank statement never leaves your device. All processing happens in your browser.</p>
+                    </div>
+                    <!-- Step 2 -->
+                    <div class="flex flex-col items-center">
+                        <div class="bg-emerald-100 text-emerald-700 rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">2</div>
+                        <h3 class="text-xl font-semibold mt-4">Instant Analysis</h3>
+                        <p class="text-gray-600 mt-2">Our tool scans the file for tax-related keywords like GST, TDS, and more.</p>
+                    </div>
+                    <!-- Step 3 -->
+                    <div class="flex flex-col items-center">
+                        <div class="bg-emerald-100 text-emerald-700 rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">3</div>
+                        <h3 class="text-xl font-semibold mt-4">View Your Results</h3>
+                        <p class="text-gray-600 mt-2">See a clear dashboard with totals, charts, and a detailed breakdown of all taxes found.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="text-center mt-16 border-t pt-8">
+            <div class="flex justify-center space-x-6 text-blue-600 hover:text-blue-800">
+                <a href="about.html" class="hover:underline">About</a>
+                <a href="privacy.html" class="hover:underline">Privacy Policy</a>
+                <a href="disclaimer.html" class="hover:underline">Disclaimer</a>
+            </div>
+            <p class="text-gray-500 text-sm mt-4">
+                &copy; 2025 Tax Lens. For informational purposes only.
+            </p>
+        </footer>
+
+    </div>
+
+    <script src="scripts/main.js"></script>
+</body>
+</html>
