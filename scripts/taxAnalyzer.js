@@ -1,4 +1,4 @@
-// Advanced Tax analysis engine for detecting and inferring taxes
+// Enhanced Tax analysis engine for detecting and inferring taxes
 class TaxAnalyzer {
     constructor() {
         // Explicit tax keywords (for direct detection)
@@ -13,52 +13,108 @@ class TaxAnalyzer {
             'STAMP_DUTY': { keywords: ['STAMP DUTY', 'STAMP', 'DUTY'], regex: /STAMP\s*DUTY[:\s]*₹?[\d,]+\.?\d*/gi }
         };
 
-        // Transaction categories and their associated keywords and typical GST rates
-        // Rates are for inference when explicit tax is not found
+        // Enhanced transaction categories with specific keywords and GST rates
         this.categories = {
             'Restaurant': {
-                keywords: ['ZOMATO', 'SWIGGY', 'RESTAURANT', 'CAFE', 'DINE', 'FOOD', 'HOTEL', 'CCD', 'KFC', 'MCDONALDS', 'PIZZA HUT', 'DOMINOS', 'STARBUCKS'],
-                gstRate: 0.05 // 5% for non-AC, general assumption for inference
-            },
-            'Fuel': {
-                keywords: ['PETROL', 'DIESEL', 'FUEL', 'HPCL', 'BPCL', 'IOCL', 'GAS STATION', 'FILLING STATION'],
-                gstRate: 0 // Fuel is typically outside GST, subject to VAT/Excise
-            },
-            'Electronics': {
-                keywords: ['ELECTRONICS', 'GADGETS', 'MOBILE', 'LAPTOP', 'TV', 'FRIDGE', 'WASHING MACHINE', 'AC', 'CROMA', 'RELIANCE DIGITAL', 'AMAZON', 'FLIPKART', 'APPLE', 'SAMSUNG', 'XIAOMI'],
-                gstRate: 0.18 // Most electronics are 18%
+                keywords: ['ZOMATO', 'SWIGGY', 'RESTAURANT', 'CAFE', 'DINE', 'DINNER', 'LUNCH', 'BREAKFAST', 'FOOD DELIVERY', 'CCD', 'KFC', 'MCDONALDS', 'PIZZA HUT', 'DOMINOS', 'STARBUCKS', 'BURGER KING', 'SUBWAY'],
+                gstRate: 0.05, // 5% for non-AC restaurants
+                description: 'Food & Dining'
             },
             'Groceries': {
-                keywords: ['GROCERY', 'SUPERMARKET', 'KIRANA', 'BIG BAZAAR', 'RELIANCE FRESH', 'D-MART', 'MILK', 'BREAD', 'VEGETABLES', 'FRUITS', 'SPENCERS', 'MORE RETAIL'],
-                gstRate: 0.05 // Branded packaged food items
+                keywords: ['GROCERY', 'SUPERMARKET', 'KIRANA', 'BIG BAZAAR', 'RELIANCE FRESH', 'D-MART', 'VEGETABLES', 'FRUITS', 'SPENCERS', 'MORE RETAIL', 'INSTAMART', 'GROFERS', 'BLINKIT'],
+                gstRate: 0.05, // 5% for branded packaged food items
+                description: 'Groceries & Food Items'
             },
-            'Services': {
-                keywords: ['CONSULTING', 'SOFTWARE', 'IT SERVICES', 'LEGAL FEES', 'MAINTENANCE', 'REPAIR', 'SALON', 'SPA', 'GYM', 'SUBSCRIPTION', 'SERVICE CHARGE', 'PROFESSIONAL FEES', 'ADVISORY'],
-                gstRate: 0.18 // Most services are 18%
-            },
-            'Travel': {
-                keywords: ['FLIGHT', 'AIRLINE', 'TRAIN', 'BUS', 'TAXI', 'CAB', 'OLA', 'UBER', 'MAKEMYTRIP', 'GOIBIBO', 'TRAVEL', 'TICKET', 'AIRPORT', 'RAILWAY'],
-                gstRate: 0.05 // Economy air/rail travel
-            },
-            'Accommodation': {
-                keywords: ['HOTEL', 'RESORT', 'HOMESTAY', 'BOOKING.COM', 'OYO', 'TREEBO'],
-                gstRate: 0.12 // General assumption for hotels (1000-7500 tariff)
-            },
-            'Apparel': {
-                keywords: ['APPAREL', 'CLOTHING', 'SHOES', 'GARMENTS', 'ZARA', 'H&M', 'ADIDAS', 'NIKE', 'FASHION', 'BOUTIQUE'],
-                gstRate: 0.12 // Apparel above 1000, footwear above 500
+            'Entertainment': {
+                keywords: ['MOVIE TICKETS', 'CINEMA', 'PVR', 'INOX', 'MULTIPLEX', 'THEATRE', 'ENTERTAINMENT', 'BOOKMYSHOW', 'CONCERT', 'SHOW'],
+                gstRate: 0.18, // 18% for cinema tickets below ₹100
+                description: 'Movies & Entertainment'
             },
             'Utilities': {
-                keywords: ['ELECTRICITY', 'WATER BILL', 'BROADBAND', 'INTERNET', 'TELEPHONE', 'MOBILE RECHARGE', 'GAS BILL'],
-                gstRate: 0.18 // Most utility services
+                keywords: ['ELECTRICITY BILL', 'WATER BILL', 'GAS BILL', 'BROADBAND', 'INTERNET', 'TELEPHONE', 'MOBILE RECHARGE', 'TATA POWER', 'BSES', 'ADANI', 'AIRTEL', 'JIO', 'VI'],
+                gstRate: 0.18, // 18% for most utility services
+                description: 'Utilities & Bills'
             },
-            'Healthcare': {
-                keywords: ['HOSPITAL', 'CLINIC', 'PHARMACY', 'MEDICINE', 'DOCTOR', 'LAB', 'DIAGNOSTICS'],
-                gstRate: 0.00 // Healthcare services are generally exempt
+            'Fuel': {
+                keywords: ['PETROL PUMP', 'DIESEL', 'FUEL', 'HPCL', 'BPCL', 'IOCL', 'INDIAN OIL', 'BHARAT PETROLEUM', 'HINDUSTAN PETROLEUM', 'GAS STATION', 'FILLING STATION'],
+                gstRate: 0, // Fuel is outside GST
+                description: 'Fuel & Transportation'
+            },
+            'Pharmacy': {
+                keywords: ['PHARMACY', 'MEDICAL', 'APOLLO PHARMACY', 'MEDPLUS', 'NETMEDS', 'MEDICINE', 'DRUGS', 'CHEMIST'],
+                gstRate: 0.12, // 12% for medicines (some are exempt, but general rate)
+                description: 'Healthcare & Medicines'
+            },
+            'Electronics': {
+                keywords: ['ELECTRONICS', 'AMAZON PURCHASE', 'FLIPKART', 'GADGETS', 'MOBILE', 'LAPTOP', 'TV', 'COMPUTER', 'CROMA', 'RELIANCE DIGITAL', 'VIJAY SALES'],
+                gstRate: 0.18, // 18% for most electronics
+                description: 'Electronics & Gadgets'
+            },
+            'Non-Taxable': {
+                keywords: ['SALARY CREDIT', 'ATM WITHDRAWAL', 'CREDIT CARD BILL PAYMENT', 'INTEREST CREDIT', 'DIVIDEND', 'REFUND', 'TRANSFER', 'NEFT', 'RTGS', 'UPI TRANSFER'],
+                gstRate: 0, // No GST on these transactions
+                description: 'Non-Taxable Transactions'
             }
         };
     }
 
+    // Main analysis method for PDF with structured transactions
+    analyzeStructuredTransactions(transactions) {
+        const taxTransactions = [];
+        
+        transactions.forEach((transaction) => {
+            const description = transaction.description.toUpperCase();
+            let foundExplicitTax = false;
+
+            // 1. Try to find explicit tax mentions first
+            for (const [taxType, pattern] of Object.entries(this.explicitTaxPatterns)) {
+                const hasKeyword = pattern.keywords.some(keyword => description.includes(keyword));
+                if (hasKeyword) {
+                    const amount = this.parseAmount(transaction.amount);
+                    if (amount > 0) {
+                        taxTransactions.push({
+                            type: taxType,
+                            amount: amount,
+                            description: transaction.description,
+                            source: 'explicit',
+                            date: transaction.date,
+                            originalTransaction: transaction
+                        });
+                        foundExplicitTax = true;
+                    }
+                }
+            }
+
+            // 2. If no explicit tax found, try to infer based on category
+            if (!foundExplicitTax) {
+                const category = this.categorizeTransaction(description);
+                if (category && this.categories[category].gstRate > 0) {
+                    const totalAmount = Math.abs(this.parseAmount(transaction.amount));
+                    if (totalAmount > 0) {
+                        // Calculate GST included in the transaction amount
+                        const gstRate = this.categories[category].gstRate;
+                        const inferredTax = totalAmount * (gstRate / (1 + gstRate));
+                        
+                        taxTransactions.push({
+                            type: `Inferred GST (${category})`,
+                            amount: inferredTax,
+                            description: transaction.description,
+                            source: 'inferred',
+                            category: category,
+                            gstRate: gstRate,
+                            totalAmount: totalAmount,
+                            date: transaction.date,
+                            originalTransaction: transaction
+                        });
+                    }
+                }
+            }
+        });
+        
+        return this.summarizeTransactions(taxTransactions);
+    }
+
+    // Legacy method for unstructured text (fallback)
     analyzePDFText(text) {
         const transactions = [];
         const lines = text.split('\n');
@@ -88,16 +144,17 @@ class TaxAnalyzer {
             if (!foundExplicitTax) {
                 const category = this.categorizeTransaction(processedLine);
                 if (category && this.categories[category].gstRate > 0) {
-                    const totalAmount = this.extractTotalAmount(processedLine); // Attempt to find a total amount in the line
+                    const totalAmount = this.extractTotalAmount(processedLine);
                     if (totalAmount > 0) {
-                        const inferredTax = totalAmount * (this.categories[category].gstRate / (1 + this.categories[category].gstRate));
+                        const gstRate = this.categories[category].gstRate;
+                        const inferredTax = totalAmount * (gstRate / (1 + gstRate));
                         transactions.push({
                             type: `Inferred GST (${category})`,
                             amount: inferredTax,
                             description: line.trim(),
                             source: 'inferred',
                             category: category,
-                            gstRate: this.categories[category].gstRate,
+                            gstRate: gstRate,
                             date: this.extractDate(line) || 'Unknown'
                         });
                     }
@@ -117,10 +174,9 @@ class TaxAnalyzer {
 
             // 1. Try to find explicit tax mentions first
             for (const [taxType, pattern] of Object.entries(this.explicitTaxPatterns)) {
-                // For CSV, we'll rely on keyword presence in rowText for explicit tax
                 const hasKeyword = pattern.keywords.some(keyword => rowText.includes(keyword));
                 if (hasKeyword) {
-                    const amount = this.findAmountInRow(row); // Find amount from CSV columns
+                    const amount = this.findAmountInRow(row);
                     if (amount > 0) {
                         transactions.push({
                             type: taxType,
@@ -138,16 +194,17 @@ class TaxAnalyzer {
             if (!foundExplicitTax) {
                 const category = this.categorizeTransaction(rowText);
                 if (category && this.categories[category].gstRate > 0) {
-                    const totalAmount = this.findAmountInRow(row); // Use the amount from CSV columns as total
+                    const totalAmount = Math.abs(this.findAmountInRow(row));
                     if (totalAmount > 0) {
-                        const inferredTax = totalAmount * (this.categories[category].gstRate / (1 + this.categories[category].gstRate));
+                        const gstRate = this.categories[category].gstRate;
+                        const inferredTax = totalAmount * (gstRate / (1 + gstRate));
                         transactions.push({
                             type: `Inferred GST (${category})`,
                             amount: inferredTax,
                             description: this.getRowDescription(row),
                             source: 'inferred',
                             category: category,
-                            gstRate: this.categories[category].gstRate,
+                            gstRate: gstRate,
                             date: this.findDateInRow(row) || 'Unknown'
                         });
                     }
@@ -159,6 +216,7 @@ class TaxAnalyzer {
     }
 
     categorizeTransaction(text) {
+        // Check each category for keyword matches
         for (const [category, data] of Object.entries(this.categories)) {
             if (data.keywords.some(keyword => text.includes(keyword))) {
                 return category;
@@ -167,48 +225,54 @@ class TaxAnalyzer {
         return null;
     }
 
+    parseAmount(amountStr) {
+        // Parse amount string like "INR -850.00" or "INR 85,000.00"
+        if (!amountStr) return 0;
+        
+        const cleanAmount = amountStr.toString()
+            .replace(/INR/gi, '')
+            .replace(/[,\s]/g, '')
+            .trim();
+        
+        const amount = parseFloat(cleanAmount);
+        return isNaN(amount) ? 0 : Math.abs(amount); // Return absolute value
+    }
+
     extractAmounts(text, regex) {
-        // Extracts amounts using a specific regex (for explicit taxes)
         const matches = text.match(regex) || [];
         return matches.map(match => {
-            const cleanAmount = match.replace(/[^\d.]/g, ''); // Remove non-numeric except dot
+            const cleanAmount = match.replace(/[^\d.]/g, '');
             const amount = parseFloat(cleanAmount);
             return isNaN(amount) ? 0 : amount;
         }).filter(amount => amount > 0);
     }
 
     extractTotalAmount(text) {
-        // Attempt to find a general transaction amount in the line
-        // This regex looks for numbers that might represent a total transaction value
         const amountRegex = /(?:₹|RS\.?\s*|INR\.?\s*)?(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)/gi;
         let matches = [];
         let match;
         while ((match = amountRegex.exec(text)) !== null) {
             matches.push(parseFloat(match[1].replace(/,/g, '')));
         }
-        // Return the largest amount found, assuming it's the total transaction value
         return matches.length > 0 ? Math.max(...matches) : 0;
     }
 
     findAmountInRow(row) {
-        // Look for amount in common column names for CSV
         const amountColumns = ['amount', 'debit', 'credit', 'withdrawal', 'deposit', 'value', 'txn_amount', 'transaction_amount'];
         
         for (const col of amountColumns) {
             for (const [key, value] of Object.entries(row)) {
                 if (key.toLowerCase().includes(col) && value) {
-                    const amount = parseFloat(value.toString().replace(/[₹,]/g, ''));
-                    if (!isNaN(amount) && amount > 0) {
+                    const amount = this.parseAmount(value);
+                    if (amount > 0) {
                         return amount;
                     }
                 }
             }
         }
         
-        // Fallback: extract from any string field in the row
         const rowText = Object.values(row).join(' ');
-        const amounts = this.extractTotalAmount(rowText);
-        return amounts > 0 ? amounts : 0;
+        return this.extractTotalAmount(rowText);
     }
 
     getRowDescription(row) {
@@ -236,7 +300,6 @@ class TaxAnalyzer {
     }
 
     extractDate(text) {
-        // Improved date extraction for various formats (DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD)
         const dateRegex = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2})/;
         const match = text.match(dateRegex);
         return match ? match[0] : null;
@@ -254,7 +317,7 @@ class TaxAnalyzer {
         transactions.forEach(transaction => {
             summary.totalTax += transaction.amount;
             
-            const typeKey = transaction.source === 'inferred' ? `Inferred GST (${transaction.category})` : transaction.type;
+            const typeKey = transaction.type;
 
             if (!summary.byType[typeKey]) {
                 summary.byType[typeKey] = {
