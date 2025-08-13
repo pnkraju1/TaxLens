@@ -12,11 +12,11 @@ class PDFParser {
         return new Promise((resolve, reject) => {
             const script = document.createElement("script");
             script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-            script.onload = ( ) => {
+            script.onload = () => {
                 this.pdfjsLib = window.pdfjsLib;
                 this.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
                 this.isLibraryLoaded = true;
-                resolve( );
+                resolve();
             };
             script.onerror = reject;
             document.head.appendChild(script);
@@ -154,3 +154,4 @@ class PDFParser {
 
 // Export for use in other scripts
 window.PDFParser = PDFParser;
+
