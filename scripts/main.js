@@ -37,89 +37,135 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Handle drag and drop events
+    // Handle drag and drop
     dropZone.addEventListener("dragover", (e) => {
         e.preventDefault();
         dropZone.classList.add("drop-zone-over");
     });
 
-    dropZone.addEventListener("dragleave", () => {
+    dropZone.addEventListener("dragleave", (e) => {
+        e.preventDefault();
         dropZone.classList.remove("drop-zone-over");
     });
 
     dropZone.addEventListener("drop", (e) => {
         e.preventDefault();
         dropZone.classList.remove("drop-zone-over");
-        if (e.dataTransfer.files.length > 0) {
-            handleFile(e.dataTransfer.files[0]);
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFile(files[0]);
         }
     });
 
-    // Handle Analyze Now button click
+    // Handle analyze button click
     analyzeBtn.addEventListener("click", () => {
         if (selectedFile && !isAnalyzing) {
-            analyzeFile(selectedFile);
+            analyzeFile();
         }
     });
 
-    // --- Functions ---
+    // --- Helper Functions ---
 
     function handleFile(file) {
         hideError();
+        
+        // Validate file type
+        const allowedTypes = ['application/pdf', 'text/csv', 'application/vnd.ms-excel'];
+        const allowedExtensions = ['.pdf', '.csv'];
+        
+        const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+        
+        if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+            showError("Please upload a PDF or CSV file only.");
+            return;
+        }
+
+        // Validate file size (max 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            showError("File size must be less than 10MB.");
+            return;
+        }
+
         selectedFile = file;
+        
+        // Update UI
         fileNameSpan.textContent = file.name;
         fileInfo.classList.remove("hidden");
-        updateAnalyzeButton("Analyze Now", false);
+        analyzeBtn.disabled = false;
+        analyzeBtn.classList.remove("opacity-50", "cursor-not-allowed");
+        analyzeBtn.classList.add("hover:bg-emerald-700");
     }
 
-    async function analyzeFile(file) {
+    async function analyzeFile() {
+        if (!selectedFile) return;
+
         isAnalyzing = true;
         updateAnalyzeButton("Analyzing...", true);
-        showProgress("Starting analysis...");
         hideError();
 
-        let analysisResult = null;
-
         try {
-            if (file.type === "application/pdf") {
+            showProgress("Starting analysis...");
+            
+            let analysisResult;
+            
+            if (selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf')) {
                 showProgress("Parsing PDF...");
-                const pdfResult = await pdfParser.parseFile(file);
-                if (pdfResult.success) {
-                    showProgress("Analyzing PDF content for taxes...");
+                const pdfResult = await pdfParser.parseFile(selectedFile);
+                
+                if (!pdfResult.success) {
+                    throw new Error(`PDF parsing failed: ${pdfResult.error}`);
+                }
+
+                showProgress("Analyzing transactions...");
+                
+                // Use structured transactions if available, otherwise fall back to text analysis
+                if (pdfResult.transactions && pdfResult.transactions.length > 0) {
+                    console.log("Using structured transaction analysis");
+                    console.log("Extracted transactions:", pdfResult.transactions);
+                    analysisResult = taxAnalyzer.analyzeStructuredTransactions(pdfResult.transactions);
+                } else {
+                    console.log("Falling back to text analysis");
                     analysisResult = taxAnalyzer.analyzePDFText(pdfResult.text);
-                } else {
-                    throw new Error(pdfResult.error || "Failed to parse PDF.");
                 }
-            } else if (file.type === "text/csv") {
+                
+            } else if (selectedFile.type === 'text/csv' || selectedFile.name.toLowerCase().endsWith('.csv')) {
                 showProgress("Parsing CSV...");
-                const csvResult = await csvParser.parseFile(file);
-                if (csvResult.success) {
-                    showProgress("Analyzing CSV data for taxes...");
-                    analysisResult = taxAnalyzer.analyzeCSVData(csvResult.data);
-                } else {
-                    throw new Error(csvResult.error || "Failed to parse CSV.");
+                const csvResult = await csvParser.parseFile(selectedFile);
+                
+                if (!csvResult.success) {
+                    throw new Error(`CSV parsing failed: ${csvResult.error}`);
                 }
+
+                showProgress("Analyzing transactions...");
+                analysisResult = taxAnalyzer.analyzeCSVData(csvResult.data);
             } else {
-                throw new Error("Unsupported file type. Please upload a PDF or CSV.");
+                throw new Error("Unsupported file type");
             }
 
-            if (analysisResult) {
-                // Add file name and analysis date to results
-                analysisResult.fileName = file.name;
-                analysisResult.analysisDate = new Date().toISOString();
-                
-                // Store results in session storage for results.html
-                sessionStorage.setItem("taxAnalysisResult", JSON.stringify(analysisResult));
-                
-                showProgress("Analysis complete. Redirecting to results...");
-                // Redirect to results page after a short delay
-                setTimeout(() => {
-                    window.location.href = "results.html";
-                }, 1000);
+            showProgress("Generating results...");
 
-            } else {
-                throw new Error("No analysis result generated.");
-            }
+            // Store results in session storage for the results page
+            const resultsData = {
+                fileName: selectedFile.name,
+                fileType: selectedFile.type,
+                analysisDate: new Date().toISOString(),
+                totalTax: analysisResult.totalTax,
+                count: analysisResult.count,
+                byType: analysisResult.byType,
+                byMonth: analysisResult.byMonth,
+                transactions: analysisResult.transactions
+            };
+
+            sessionStorage.setItem("taxAnalysisResult", JSON.stringify(resultsData));
+
+            showProgress("Complete! Redirecting to results...");
+
+            // Redirect to results page
+            setTimeout(() => {
+                window.location.href = "results.html";
+            }, 1000);
 
         } catch (error) {
             console.error("Analysis error:", error);
@@ -143,7 +189,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function showProgress(message) {
-        // You can enhance this to show a proper progress indicator
         console.log("Progress:", message);
     }
     
