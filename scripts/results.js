@@ -1,316 +1,164 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const loading = document.getElementById("loading");
-    const errorState = document.getElementById("error-state");
-    const resultsContent = document.getElementById("results-content");
-    
-    // Load and display results
-    loadResults();
+document.addEventListener('DOMContentLoaded', () => {
+    const resultsData = JSON.parse(sessionStorage.getItem('taxAnalysisResult'));
 
-    function loadResults() {
-        try {
-            // Get analysis results from session storage
-            const resultsData = sessionStorage.getItem("taxAnalysisResult");
-            
-            if (!resultsData) {
-                showError();
-                return;
-            }
+    if (!resultsData) {
+        // Redirect to home if no data is found
+        window.location.href = 'index.html';
+        return;
+    }
 
-            const results = JSON.parse(resultsData);
-            displayResults(results);
-            
-        } catch (error) {
-            console.error("Error loading results:", error);
-            showError();
+    // Display basic info
+    document.getElementById('file-name').textContent = resultsData.fileName;
+    document.getElementById('analysis-date').textContent = new Date(resultsData.analysisDate).toLocaleDateString();
+
+    // Display summary cards
+    document.getElementById('total-tax').textContent = `₹${resultsData.totalTax.toFixed(2)}`;
+    document.getElementById('total-transactions').textContent = resultsData.count;
+
+    // Determine highest tax type
+    let highestTaxType = 'N/A';
+    let maxTaxAmount = 0;
+    for (const type in resultsData.byType) {
+        if (resultsData.byType[type].total > maxTaxAmount) {
+            maxTaxAmount = resultsData.byType[type].total;
+            highestTaxType = type;
         }
     }
+    document.getElementById('highest-tax-type').textContent = highestTaxType;
 
-    function showError() {
-        loading.classList.add("hidden");
-        errorState.classList.remove("hidden");
+    // Populate detailed transactions table
+    const transactionsTableBody = document.getElementById('transactions-table-body');
+    if (resultsData.transactions && resultsData.transactions.length > 0) {
+        resultsData.transactions.forEach(transaction => {
+            const row = transactionsTableBody.insertRow();
+            row.className = 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${transaction.date || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${transaction.description || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${transaction.type || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹${transaction.amount ? transaction.amount.toFixed(2) : '0.00'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${transaction.source || 'N/A'}</td>
+            `;
+        });
+    } else {
+        document.getElementById('no-transactions-message').classList.remove('hidden');
     }
 
-    function displayResults(results) {
-        // Hide loading, show content
-        loading.classList.add("hidden");
-        resultsContent.classList.remove("hidden");
+    // Render charts
+    renderTaxTypeChart(resultsData.byType);
+    renderMonthlyTaxChart(resultsData.byMonth);
 
-        // Populate file info
-        document.getElementById("file-name").textContent = results.fileName;
-        document.getElementById("analysis-date").textContent = new Date(results.analysisDate).toLocaleDateString("en-IN");
+    // Export CSV Button
+    document.getElementById('export-csv-btn').addEventListener('click', () => {
+        exportCSV(resultsData.transactions);
+    });
 
-        // Populate summary cards
-        document.getElementById("total-tax").textContent = `₹${results.totalTax.toLocaleString("en-IN")}`;
-        document.getElementById("transaction-count").textContent = results.count;
-        
-        // Find and display top tax type
-        const topTaxType = getTopTaxType(results.byType);
-        document.getElementById("top-tax-type").textContent = topTaxType;
+    // Export PDF Button (Placeholder for now)
+    document.getElementById('export-pdf-btn').addEventListener('click', () => {
+        alert('PDF export is not yet implemented.');
+    });
+});
 
-        // Create charts
-        createTaxTypeChart(results.byType);
-        createMonthlyTrendChart(results.byMonth);
+function renderTaxTypeChart(byTypeData) {
+    const ctx = document.getElementById('taxTypeChart').getContext('2d');
+    const labels = Object.keys(byTypeData);
+    const data = labels.map(label => byTypeData[label].total);
+    const backgroundColors = [
+        '#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0', '#00BCD4', '#8BC34A', '#FFEB3B', '#E91E63'
+    ];
 
-        // Populate transactions table
-        populateTransactionsTable(results.transactions);
-
-        // Setup export buttons
-        setupExportButtons(results);
-    }
-
-    function getTopTaxType(byType) {
-        let maxAmount = 0;
-        let topType = "-";
-        
-        for (const [type, data] of Object.entries(byType)) {
-            if (data.total > maxAmount) {
-                maxAmount = data.total;
-                topType = formatTaxType(type);
-            }
-        }
-        
-        return topType;
-    }
-
-    function formatTaxType(type) {
-        const typeMap = {
-            "GST": "GST",
-            "CGST": "CGST",
-            "SGST": "SGST", 
-            "IGST": "IGST",
-            "TDS": "TDS",
-            "TCS": "TCS",
-            "CESS": "Cess",
-            "STAMP_DUTY": "Stamp Duty"
-        };
-        return typeMap[type] || type;
-    }
-
-    function createTaxTypeChart(byType) {
-        const ctx = document.getElementById("tax-type-chart").getContext("2d");
-        
-        const labels = Object.keys(byType).map(formatTaxType);
-        const data = Object.values(byType).map(item => item.total);
-        const colors = [
-            "#10b981", "#3b82f6", "#8b5cf6", "#f59e0b",
-            "#ef4444", "#06b6d4", "#84cc16", "#f97316"
-        ];
-
-        new Chart(ctx, {
-            type: "doughnut",
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: colors.slice(0, labels.length),
-                    borderWidth: 2,
-                    borderColor: "#ffffff"
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: "bottom",
-                        labels: {
-                            padding: 20,
-                            usePointStyle: true
-                        }
-                    }
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors.slice(0, labels.length),
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: false,
+                    text: 'Tax Breakdown by Type'
                 }
             }
-        });
-    }
+        }
+    });
+}
 
-    function createMonthlyTrendChart(byMonth) {
-        const ctx = document.getElementById("monthly-trend-chart").getContext("2d");
-        
-        const sortedMonths = Object.keys(byMonth).sort((a, b) => {
-            return new Date(a) - new Date(b);
-        });
-        
-        const labels = sortedMonths;
-        const data = sortedMonths.map(month => byMonth[month]);
+function renderMonthlyTaxChart(byMonthData) {
+    const ctx = document.getElementById('monthlyTaxChart').getContext('2d');
+    const sortedMonths = Object.keys(byMonthData).sort((a, b) => new Date(a) - new Date(b));
+    const data = sortedMonths.map(month => byMonthData[month]);
 
-        new Chart(ctx, {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "Tax Amount (₹)",
-                    data: data,
-                    backgroundColor: "#10b981",
-                    borderColor: "#059669",
-                    borderWidth: 1,
-                    borderRadius: 4
-                }]
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sortedMonths,
+            datasets: [{
+                label: 'Tax Paid (₹)',
+                data: data,
+                backgroundColor: '#4CAF50',
+                borderColor: '#388E3C',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: false,
+                    text: 'Monthly Tax Trend'
+                }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Amount (₹)'
                     }
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return "₹" + value.toLocaleString("en-IN");
-                            }
-                        }
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Month'
                     }
                 }
             }
-        });
-    }
-
-    function populateTransactionsTable(transactions) {
-        const tbody = document.getElementById("transactions-table");
-        tbody.innerHTML = "";
-
-        if (transactions.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">
-                        No tax transactions found in the uploaded file.
-                    </td>
-                </tr>
-            `;
-            return;
         }
+    });
+}
 
-        transactions.forEach(transaction => {
-            const row = document.createElement("tr");
-            row.className = "hover:bg-gray-50";
-            
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${transaction.date}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                        ${formatTaxType(transaction.type)}
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    ₹${transaction.amount.toLocaleString("en-IN")}
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                    ${transaction.description}
-                </td>
-            `;
-            
-            tbody.appendChild(row);
-        });
-    }
+function exportCSV(transactions) {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Date,Description,Category,Tax Amount (INR),Source\n";
 
-    function setupExportButtons(results) {
-        document.getElementById("export-csv").addEventListener("click", () => {
-            exportToCSV(results);
-        });
+    transactions.forEach(transaction => {
+        const row = [
+            `"${transaction.date || ''}"`,
+            `"${transaction.description ? transaction.description.replace(/"/g, '""') : ''}"`,
+            `"${transaction.type || ''}"`,
+            `"${transaction.amount ? transaction.amount.toFixed(2) : '0.00'}"`,
+            `"${transaction.source || ''}"`
+        ];
+        csvContent += row.join(',') + "\n";
+    });
 
-        document.getElementById("export-pdf").addEventListener("click", () => {
-            exportToPDF(results);
-        });
-    }
-
-    function exportToCSV(results) {
-        const headers = ["Date", "Tax Type", "Amount", "Description"];
-        const rows = results.transactions.map(t => [
-            t.date,
-            formatTaxType(t.type),
-            t.amount,
-            t.description.replace(/,/g, ";") // Replace commas to avoid CSV issues
-        ]);
-
-        const csvContent = [headers, ...rows]
-            .map(row => row.map(field => `"${field}"`).join(","))
-            .join("\n");
-
-        const blob = new Blob([csvContent], { type: "text/csv" });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `tax-analysis-${new Date().toISOString().split("T")[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-    }
-
-    function exportToPDF(results) {
-        // Simple PDF export using browser's print functionality
-        // Create a new window with print-friendly content
-        const printWindow = window.open("", "_blank");
-        const printContent = generatePrintContent(results);
-        
-        printWindow.document.write(printContent);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-    }
-
-    function generatePrintContent(results) {
-        const transactionRows = results.transactions.map(t => `
-            <tr>
-                <td>${t.date}</td>
-                <td>${formatTaxType(t.type)}</td>
-                <td>₹${t.amount.toLocaleString("en-IN")}</td>
-                <td>${t.description}</td>
-            </tr>
-        `).join("");
-
-        return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Tax Analysis Report</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    .header { text-align: center; margin-bottom: 30px; }
-                    .summary { margin-bottom: 30px; }
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f2f2f2; }
-                    .total { font-size: 18px; font-weight: bold; color: #059669; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>Tax Lens - Analysis Report</h1>
-                    <p>File: ${results.fileName}</p>
-                    <p>Generated on: ${new Date().toLocaleDateString("en-IN")}</p>
-                </div>
-                
-                <div class="summary">
-                    <h2>Summary</h2>
-                    <p class="total">Total Tax Paid: ₹${results.totalTax.toLocaleString("en-IN")}</p>
-                    <p>Total Transactions: ${results.count}</p>
-                </div>
-
-                <h2>Detailed Transactions</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Tax Type</th>
-                            <th>Amount</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${transactionRows}
-                    </tbody>
-                </table>
-                
-                <p style="margin-top: 30px; font-size: 12px; color: #666;">
-                    This report was generated by Tax Lens for informational purposes only.
-                </p>
-            </body>
-            </html>
-        `;
-    }
-});
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "tax_lens_report.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
